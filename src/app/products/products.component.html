@@ -1,0 +1,136 @@
+<div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Products</div>
+            <div class="card-body border">
+                <form #rootForm="ngForm">
+
+                    <div class="col-12">
+
+                        <div class="row justify-content-between">
+                            <mat-form-field class="col-7">
+                                <input matInput (keyup)="applyFilter($event.target.value)" placeholder="Filter" id="searchFilter">
+                            </mat-form-field>
+                            <div class="col-2">
+                                <button mat-raised-button color="primary" (click)="addProduct()">Add</button>
+                            </div>
+                        </div>
+
+                        <mat-table #tblProduct="matSort" [dataSource]="dataSource" matSort>
+
+                            <!-- Checkbox Column -->
+                            <ng-container matColumnDef="select">
+                                <mat-header-cell *matHeaderCellDef></mat-header-cell>
+                                <mat-cell *matCellDef="let row">
+                                    <mat-checkbox (click)="$event.stopPropagation()" (change)="$event ? onSelect(row) : null" [checked]="selection.isSelected(row)">
+                                    </mat-checkbox>
+                                </mat-cell>
+                            </ng-container>
+
+                            <!-- ID Column -->
+                            <ng-container matColumnDef="id">
+                                <mat-header-cell *matHeaderCellDef mat-sort-header> ID </mat-header-cell>
+                                <mat-cell *matCellDef="let row"> {{row.id}} </mat-cell>
+                            </ng-container>
+
+                            <!-- Name Column -->
+                            <ng-container matColumnDef="name">
+                                <mat-header-cell *matHeaderCellDef mat-sort-header> Name </mat-header-cell>
+                                <mat-cell *matCellDef="let row" (click)="onSelect(row)" class="namecolumn"> {{row.name}} </mat-cell>
+                            </ng-container>
+
+                            <!-- Price Column -->
+                            <ng-container matColumnDef="price">
+                                <mat-header-cell *matHeaderCellDef mat-sort-header> Price </mat-header-cell>
+                                <mat-cell *matCellDef="let row"> {{row.price | currency}} </mat-cell>
+                            </ng-container>
+
+                            <!-- description Column -->
+                            <ng-container matColumnDef="short_description">
+                                <mat-header-cell *matHeaderCellDef mat-sort-header> Description </mat-header-cell>
+                                <mat-cell *matCellDef="let row"> {{row.description}} </mat-cell>
+                            </ng-container>
+
+                            <!-- delete Column -->
+                            <ng-container matColumnDef="delete">
+                                <mat-header-cell *matHeaderCellDef mat-sort-header></mat-header-cell>
+                                <mat-cell *matCellDef="let row">
+                                    <div class="d-flex" mwlConfirmationPopover popoverTitle="Delete Confirmation" popoverMessage="Do you really want to delete this product '{{row.name}}'?" placement="top" confirmText="Yes <i class='fa fa-check'></i>" cancelText="No <i class='fa fa-remove'></i>"
+                                        confirmButtonType="danger" cancelButtonType="default" (confirm)="onDelete(row.id)">
+                                        <i class="ml-auto fa fa-times fa-lg"></i>
+                                    </div>
+                                </mat-cell>
+                            </ng-container>
+
+                            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+                            <mat-row *matRowDef="let row; columns: displayedColumns;">
+                            </mat-row>
+                        </mat-table>
+
+                        <mat-paginator #pnProduct="matPaginator" [pageSizeOptions]="[5, 10, 25, 100]" [showFirstLastButtons]="true"></mat-paginator>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!--Selected product-->
+    <div class="col-12 pt-2" *ngIf="selectedProduct">
+        <div class=" card">
+            <div class="card-body">
+                <form (ngSubmit)="onSaveProduct()" #rootForm="ngForm" class="row">
+                    <div class="col-12 col-lg-8">
+
+                        <div class="form-group row">
+
+                            <mat-form-field class="col-12">
+                                <input matInput placeholder="Product Name" [(ngModel)]="selectedProduct.name" id="productname" name="productname" #productname="ngModel" required maxlength="500" minlength="3">
+                            </mat-form-field>
+
+                            <div class="col-12 text-danger" *ngIf="!productname.valid && productname.touched">
+                                <span [hidden]="!productname.errors.required">Product Name is required.</span>
+                                <span [hidden]="!productname.errors.minlength">Product Name must be at least 3 characters long.</span>
+                                <span [hidden]="!productname.errors.maxlength">Product Name cannot be more than 500 characters long.</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <mat-form-field class="col-12">
+                                <input matInput placeholder="Short Description" [(ngModel)]="selectedProduct.description" name="productDesc" #productDesc="ngModel" maxlength="255" />
+                            </mat-form-field>
+
+                        </div>
+
+
+                        <div class="form-group row">
+                            <div class="col-6 col-lg-4">
+                                <mat-form-field>
+                                    <input matInput type="number" placeholder="Price" [(ngModel)]="selectedProduct.price" name="productPrice" required #productPrice="ngModel">
+                                </mat-form-field>
+
+                                <div class="text-danger" *ngIf="!productPrice.valid && productPrice.touched">
+                                    <span [hidden]="!productPrice.errors.required">price is required.</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="form-group col-12 justify-content-between mt-4">
+                            <button type="submit" class="ml-2 btn btn-success" [disabled]="!rootForm.form.valid">Save</button>
+                        </div>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 pt-2" [hidden]="!showMsg">
+        <alert></alert>
+    </div>
+
+</div>
