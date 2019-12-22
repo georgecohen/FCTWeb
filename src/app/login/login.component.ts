@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { LoginService } from './login.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AlertService } from '../_services/alert.service';
+import { MatSnackBar } from '@angular/material';
 
 @Component({
     selector: 'app-login',
@@ -9,51 +9,38 @@ import { AlertService } from '../_services/alert.service';
     styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
-    model: any = {};
-    returnUrl: string;
-    loading = false;
+  model: any = {};
+  returnUrl: string;
+  loading = false;
+  error = '';
 
-    constructor(
-        private route: ActivatedRoute,
-        public router: Router,
-        private loginService: LoginService,
-        private alertService: AlertService
-    ) { }
-
-    ngOnInit() {
-        this.loginService.logout();
-        // get return url from route parameters or default to '/'
-        this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+  constructor(
+      private route: ActivatedRoute,
+      public router: Router,
+      private loginService: LoginService,
+      public snackBar: MatSnackBar
+  ) {
+    if (this.loginService.currentUserValue) {
+      this.router.navigate(['/']);
     }
+  }
 
-    onLoggedin() {
-        this.loading = true;
+  ngOnInit() {
+      this.loginService.logout();
+      // get return url from route parameters or default to '/'
+      this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+  }
 
-        this.loginService.login(this.model.username, this.model.password).subscribe(
-            (response: any) => {
-                switch (response)
-                {
-                    case 1:
-                        // this.msg = "Login successully. ";
-                        this.alertService.success("Login successully.", false);
-                        this.router.navigate([this.returnUrl]);
-                        break;
-                    case -2:
-                        // this.msg = "The account is locked.";
-                        this.alertService.error("The account is locked.", false);
-                        break;
-                    default:
-                        // this.msg = "User name and password are not matched.";
-                        this.alertService.error("User name and password are not matched.", false);
-                        break;
-
-                }
-                this.loading = false;
-            },
-            error => {
-                this.alertService.error("There is an error when logging in.", false);
-                this.loading = false;
-            }
-        );
-    }
+  onLoggedIn() {
+    this.loading = true;
+    this.loginService.login(this.model.username, this.model.password).subscribe(() => {
+        this.router.navigate([this.returnUrl]);
+        location.reload(true);
+      },
+      error => {
+        this.error = error;
+        this.loading = false;
+        this.snackBar.open('Log in failed', null, {duration: 3000, panelClass: 'snack-bar-red'});
+      });
+  }
 }

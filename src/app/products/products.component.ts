@@ -1,194 +1,129 @@
 
-import {switchMap} from 'rxjs/operators';
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute, Params, Router } from '@angular/router';
-import { Product, MyResponse } from '../models';
+import { ActivatedRoute, Router } from '@angular/router';
+import {Customer, Product, Purchase} from '../models';
 import { MatPaginator, MatSort, MatTableDataSource, MatSnackBar } from '@angular/material';
 import { SelectionModel } from '@angular/cdk/collections';
-import { Globals, AlertService } from '../shared/shared';
 import { ProductsService } from './products.service';
+import { PurchaseService } from '../purchase/purchase.service';
+import * as _ from 'underscore';
+import { LoginService } from '../login/login.service';
 
 @Component({
     selector: 'app-product',
     templateUrl: './products.component.html',
-    styleUrls: ['./products.component.css']
+    styleUrls: ['./products.component.scss']
 })
 export class ProductsComponent implements OnInit {
-    submitting = false;
-    showMsg = false;
-    menuItems: any[];
+  submitting = false;
+  showMsg = false;
+  currentUser: Customer;
+  products: Product[];
+  purchases: Purchase[] = [];
+  allPurchases: Purchase[] = [];
 
-    products: Product[];
-    parentId: number;
-    parentName: string;
-    from: string;
+  displayedColumns = ['select', 'id', 'name', 'price', 'description'];
 
-    displayedColumns = ['select', 'id', 'name', 'price', 'description', 'delete'];
+  dataSource: MatTableDataSource<Product>;
+  selection = new SelectionModel<Product>(true, []);
 
-    dataSource: MatTableDataSource<Product>;
-    selection = new SelectionModel<Product>(false, []);
+  @ViewChild('pnProduct', {static: true}) paginator: MatPaginator;
+  @ViewChild('tblProduct', {static: true}) sort: MatSort;
 
-    selectedProductId: number;
-    selectedProduct: Product;
+  constructor(
+      private route: ActivatedRoute,
+      private router: Router,
+      private productsService: ProductsService,
+      public snackBar: MatSnackBar,
+      private purchaseService: PurchaseService,
+      private authenticationService: LoginService
+  ) {
+      this.dataSource = new MatTableDataSource([]);
+  }
 
-    @ViewChild('pnProduct', {static: true}) paginator: MatPaginator;
-    @ViewChild('tblProduct', {static: true}) sort: MatSort;
+  ngOnInit() {
+    this.authenticationService.currentUser.subscribe(x => this.currentUser = x);
+    this.getProducts();
+  }
 
-    // ngAfterViewInit() {
-    //     this.dataSource.sort = this.sort;
-    //     this.dataSource.paginator = this.paginator;
-    // }
+  getProducts(): void {
+    this.productsService.getProducts().then(products => {
+      this.products = products;
+      this.dataSource = new MatTableDataSource(this.products);
 
-    constructor(
-        private route: ActivatedRoute,
-        private router: Router,
-        private productsService: ProductsService,
-        private globals: Globals,
-        private alertService: AlertService,
-        public snackBar: MatSnackBar
-    ) {
-        this.dataSource = new MatTableDataSource([]);
-    }
+      this.dataSource.sort = this.sort;
+      this.dataSource.paginator = this.paginator;
 
-    ngOnInit() {
-        this.getProducts();
-    }
+      const filter = document.getElementById('searchFilter') as HTMLInputElement;
+      this.applyFilter(filter.value);
+    });
+  }
 
-    getProducts(): void {
-      this.productsService.getProducts().then(products => {
-        this.products = products;
-        this.dataSource = new MatTableDataSource(this.products);
-        // this.ngAfterViewInit();
+  applyFilter(filterValue: string) {
+      filterValue = filterValue.trim(); // Remove whitespace
+      filterValue = filterValue.toLowerCase(); // Datasource defaults to lowercase matches
+      this.dataSource.filter = filterValue;
+  }
 
-        this.dataSource.sort = this.sort;
-        this.dataSource.paginator = this.paginator;
+  onSelect(product: Product): void {
+    this.selection.toggle(product);
+  }
 
-        const filter = document.getElementById('searchFilter') as HTMLInputElement;
-        this.applyFilter(filter.value);
+  purchaseProduct() {
+    if (this.selection.selected && this.selection.selected.length > 0) {
+      this.selection.selected.forEach(p => {
+        const exist = _.find(this.purchases, (itm) => {
+          return p.id === itm.productId;
+        });
+
+        if (exist) {
+          exist.quantity += 1;
+        } else {
+          this.purchases.push(
+            {id: 0, productId: p.id, userId: this.currentUser.id, quantity: 1, price: p.price, product: p, user: null, dateCreated: null}
+          );
+        }
       });
     }
+  }
 
-    applyFilter(filterValue: string) {
-        filterValue = filterValue.trim(); // Remove whitespace
-        filterValue = filterValue.toLowerCase(); // Datasource defaults to lowercase matches
-        this.dataSource.filter = filterValue;
+  submitPurchase() {
+    if (this.purchases && this.purchases.length > 0) {
+      this.purchaseService.submitPurchases(this.purchases).then(() => this.router.navigate(['purchase']));
     }
+  }
 
-    onSelect(product: Product): void {
-        this.selection.toggle(product);
-        if (this.selection.selected && this.selection.selected.length > 0) {
-            this.selectedProductId = this.selection.selected[0].id;
-            this.selectedProduct = Object.assign({}, product);
-        } else {
-            this.selectedProductId = 0;
-            this.selectedProduct = null;
+  quantityChange(newQuantity: any, item: any) {
+    if (newQuantity.value !== item.quantity) {
+      this.purchases.forEach(p => {
+        if (p.productId === item.productId) {
+          p.quantity = newQuantity;
         }
+      });
     }
+  }
 
-    addProduct(): void {
-        this.selection.clear();
-        this.selectedProduct = null;
+  getTotalQuantity(): number {
+    return this.purchases.reduce((acc, current) => acc + (+current.quantity), 0);
+  }
 
-        let timeout = 10;
+  getTotalPrice() {
+    return this.purchases.reduce((acc, current) => acc + (+current.quantity * current.product.price), 0);
+  }
 
-        if (this.selectedProductId > 0) {
-            timeout = 400;
-            this.selectedProductId = -1;
-        }
+  deletePurchase(purchase: Purchase) {
+    this.purchases = _.reject(this.purchases, (p) => p.productId === purchase.productId);
+  }
 
-        setTimeout(() => {
-            this.selectedProduct = {
-                id: -1,
-                name: '',
-                price: null,
-                description: null
-            } as Product;
-        }, timeout);
-    }
+  cancelAll() {
+    this.purchases = [];
+  }
 
-    onSaveProduct(): void {
-        this.submitting = true;
-
-        if (this.selectedProduct) {
-          this.doSaveProduct();
-        }
-    }
-
-    doSaveProduct(): void {
-      if (this.selectedProduct.id > 0) {
-        this.productsService.SaveProduct(this.selectedProduct.id, this.selectedProduct)
-          .then(response => {
-            // save success, re-get
-            this.getProducts();
-            this.openSnackBar(this.globals.saveSuccessMessage, true);
-            this.submitting = false;
-          })
-          .catch((error) => {
-            this.submitting = false;
-            console.log("There is an error when saving product (" + this.selectedProduct.name + "): " + error.message);
-            this.openSnackBar(this.globals.saveErrorMessage, false);
-          });
+  openSnackBar(message: string, success: boolean) {
+      if (success) {
+        this.snackBar.open(message, null, {duration: 3000, panelClass: (success ? 'snack-bar-green' : 'snack-bar-red')});
       } else {
-        this.productsService.CreateProduct(this.selectedProduct)
-          .then(newProduct => {
-            if (newProduct != null) {
-              // save success, re-get
-              this.getProducts();
-
-              if (this.selectedProduct.id <= 0) {
-                this.selectedProduct.id = newProduct.id;
-                this.selectedProductId = newProduct.id;
-                this.onSelect(this.selectedProduct);
-              }
-
-              this.openSnackBar(this.globals.saveSuccessMessage, true);
-            }
-            this.submitting = false;
-          })
-          .catch((error) => {
-            this.submitting = false;
-            console.log("There is an error when saving product (" + this.selectedProduct.name + "): " + error.message);
-            this.openSnackBar(this.globals.saveErrorMessage, false);
-          });
+        this.snackBar.open(message, 'Close', {panelClass: (success ? 'snack-bar-green' : 'snack-bar-red')});
       }
-
-    }
-
-    onDelete(id: number): void {
-
-        // this.productsService
-        //     .DeleteProduct(id)
-        //     .then((response: MyResponse) => {
-        //         if (response.success) {
-        //             //delete success, re-get
-        //             this.getProducts();
-        //             this.openSnackBar(this.globals.deleteSuccessMessage, true);
-        //
-        //             if (this.selectedProductId == id) {
-        //                 this.selectedProductId = 0;
-        //                 this.selectedProduct = null;
-        //
-        //                 this.globals.setCategoryId(0);
-        //                 this.globals.setCategoryName('');
-        //             }
-        //         } else {
-        //             ////server error
-        //             this.openSnackBar(response.message, false);
-        //         }
-        //     })
-        //     .catch((error) => {
-        //         this.submitting = false;
-        //         console.log("There is an error when deleting product (#" + id + "): " + error.message);
-        //         this.openSnackBar(this.globals.deleteErrorMessage, false);
-        //     });
-
-    }
-
-    openSnackBar(message: string, success: boolean) {
-        if (success) {
-          this.snackBar.open(message, null, {duration: 3000, panelClass: (success ? 'snack-bar-green' : 'snack-bar-red')});
-        } else {
-          this.snackBar.open(message, "Close", {panelClass: (success ? 'snack-bar-green' : 'snack-bar-red')});
-        }
-    }
+  }
 }

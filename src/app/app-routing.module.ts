@@ -1,15 +1,13 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { AppComponent } from './app.component';
-import { AuthGuard } from './guard/index';
+import { AuthGuard } from './guard';
 
 const routes: Routes = [
-    { path: '', loadChildren: './products/products.module#ProductsModule', canActivate: [AuthGuard] },
-    { path: 'login', loadChildren: './login/login.module#LoginModule' },
-    { path: 'error', loadChildren: './server-error/server-error.module#ServerErrorModule' },
-    { path: 'access-denied', loadChildren: './access-denied/access-denied.module#AccessDeniedModule' },
-    { path: 'not-found', loadChildren: './not-found/not-found.module#NotFoundModule' },
-    { path: '**', redirectTo: 'not-found' }
+  { path: '', loadChildren: './products/products.module#ProductsModule', canActivate: [AuthGuard] },
+  { path: 'login', loadChildren: './login/login.module#LoginModule' },
+  { path: 'purchase', loadChildren: './purchase/purchase.module#PurchaseModule' },
+  { path: 'not-found', loadChildren: './not-found/not-found.module#NotFoundModule' },
+  { path: '**', redirectTo: 'not-found' }
 ];
 
 @NgModule({
@@ -17,3 +15,4 @@ const routes: Routes = [
     exports: [RouterModule]
 })
 export class AppRoutingModule {}
+

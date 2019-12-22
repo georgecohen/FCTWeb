@@ -1,190 +1,57 @@
-<div [@routerTransition]>
-    <app-page-header [parents]="menuItems" [heading]="'Purchase'" [icon]="'fa-cart-arrow-down'"></app-page-header>
+<div>
+    <!--Purchase list-->
+  <div class=" card">
+    <div class="card-header">My Purchase</div>
+    <div class="card-body">
+      <div class="col-12 pt-2" *ngIf="!purchases || purchases.length == 0">No purchases.</div>
 
-    <!--Sub Categories list-->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">Purchase Management</div>
-            <div class="card-body border">
-                <form #rootForm="ngForm">
+        <div class="col-12" *ngIf="purchases && purchases.length > 0" >
 
-                    <div class="col-12">
+          <mat-table #tblPurchase="matSort" [dataSource]="dataSource" matSort>
 
-                        <div class="row justify-content-between">
-                            <mat-form-field class="col-sm-12 col-md-6 col-lg-6">
-                                <input matInput (keyup)="applyFilter($event.target.value)" placeholder="Filter" id="searchFilter">
-                            </mat-form-field>
-                            <div class="col-sm-12 col-md-6 col-lg-6 mb-xs-2 mb-sm-2 mb-md-0 d-flex justify-content-end align-items-center">
-                                <!--<button type="button" class="pull-right" mat-raised-button color="accent" (click)="enterWarehouse()">Enter Warehouse</button>-->
-                                <button type="button" class="mr-2" mat-raised-button color="primary" (click)="addPurchase()">Add Purchase</button>
+              <!-- purchase id Column -->
+              <ng-container matColumnDef="id">
+                  <mat-header-cell *matHeaderCellDef hidden> ID </mat-header-cell>
+                  <mat-cell *matCellDef="let row" hidden> {{row.id}} </mat-cell>
+              </ng-container>
 
-                                <button class="mr-2" mat-raised-button color="accent" mwlConfirmationPopover popoverTitle="Enter Warehouse Confirmation" popoverMessage="Do you really want to enter all purchases to warehouse? You can't update these purchases after warehousing, but you can update them in Inventory screen directly. "
-                                    placement="left" confirmText="Yes <i class='fa fa-check'></i>" cancelText="No <i class='fa fa-remove'></i>" confirmButtonType="danger" cancelButtonType="default" (confirm)="enterWarehouse()" [disabled]="(purchases||[]).length == 0">
-                                    Enter Warehouse
-                                </button>
+              <!-- Name Column -->
+              <ng-container matColumnDef="product.name">
+                  <mat-header-cell *matHeaderCellDef class="col"> Name </mat-header-cell>
+                  <mat-cell *matCellDef="let row" class="col"> {{row.product.name}} </mat-cell>
+              </ng-container>
 
-                            </div>
-                        </div>
+            <!-- price Column -->
+            <ng-container matColumnDef="price">
+              <mat-header-cell *matHeaderCellDef class="col-3 col-sm-2"> Price ($) </mat-header-cell>
+              <mat-cell *matCellDef="let row" class="col-3 col-sm-2"> {{row.price | number:'1.2-4'}} </mat-cell>
+            </ng-container>
 
-                        <mat-table #tblCategory="matSort" [dataSource]="dataSource" matSort>
+            <!-- quantity Column -->
+              <ng-container matColumnDef="quantity">
+                  <mat-header-cell *matHeaderCellDef class="col-2 col-sm-1"> Quantity </mat-header-cell>
+                  <mat-cell *matCellDef="let row" class="col-2 col-sm-1"> {{row.quantity }} </mat-cell>
+              </ng-container>
 
-                            <!-- Checkbox Column -->
-                            <ng-container matColumnDef="select">
-                                <mat-header-cell *matHeaderCellDef></mat-header-cell>
-                                <mat-cell *matCellDef="let row">
-                                    <mat-checkbox (click)="$event.stopPropagation()" (change)="$event ? onSelect(row) : null" [checked]="selection.isSelected(row)">
-                                    </mat-checkbox>
-                                </mat-cell>
-                            </ng-container>
+              <!-- total price Column -->
+              <ng-container matColumnDef="total">
+                  <mat-header-cell *matHeaderCellDef class="col-3 col-sm-2"> Total Price ($) </mat-header-cell>
+                  <mat-cell *matCellDef="let row" class="col-3 col-sm-2"> {{row.price * row.quantity | number:'1.2-4' }} </mat-cell>
+              </ng-container>
 
-                            <!-- purchase id Column -->
-                            <ng-container matColumnDef="id">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header hidden> ID </mat-header-cell>
-                                <mat-cell *matCellDef="let row" hidden> {{row.id}} </mat-cell>
-                            </ng-container>
+              <!-- dateCreated Column -->
+              <ng-container matColumnDef="dateCreated">
+                  <mat-header-cell *matHeaderCellDef class="col-3 col-sm-2">Purchase Date</mat-header-cell>
+                  <mat-cell *matCellDef="let row" class="col-3 col-sm-2"> {{row.dateCreated | date: 'medium'}} </mat-cell>
+              </ng-container>
 
-                            <!-- product_id Column -->
-                            <ng-container matColumnDef="product_id">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header> Product Id </mat-header-cell>
-                                <mat-cell *matCellDef="let row"> {{row.product_id}} </mat-cell>
-                            </ng-container>
+              <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: displayedColumns;">
+              </mat-row>
+          </mat-table>
 
-                            <!-- Name Column -->
-                            <ng-container matColumnDef="name">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header> Name </mat-header-cell>
-                                <mat-cell *matCellDef="let row" (click)="onSelect(row)" class="namecolumn"> {{row.name}} </mat-cell>
-                            </ng-container>
-
-                            <!-- instock Column -->
-                            <ng-container matColumnDef="quantity">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header> Quantity </mat-header-cell>
-                                <mat-cell *matCellDef="let row"> {{row.quantity }} </mat-cell>
-                            </ng-container>
-
-                            <!-- total_price Column -->
-                            <ng-container matColumnDef="total_price">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header> Total Price ($) </mat-header-cell>
-                                <mat-cell *matCellDef="let row"> {{row.total_price | number:'1.2-4' }} </mat-cell>
-                            </ng-container>
-
-                            <!-- unit price Column -->
-                            <ng-container matColumnDef="unit_price">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header> Unit Price ($) </mat-header-cell>
-                                <mat-cell *matCellDef="let row"> {{row.unit_price | number:'1.2-4'}} </mat-cell>
-                            </ng-container>
-
-                            <!-- last_sale_date Column -->
-                            <ng-container matColumnDef="purchase_date">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header>Purchase Date</mat-header-cell>
-                                <mat-cell *matCellDef="let row"> {{row.purchase_date | date: 'mediumDate'}} </mat-cell>
-                            </ng-container>
-
-                            <!-- delete Column -->
-                            <ng-container matColumnDef="delete">
-                                <mat-header-cell *matHeaderCellDef mat-sort-header></mat-header-cell>
-                                <mat-cell *matCellDef="let row">
-                                    <div class="d-flex" mwlConfirmationPopover popoverTitle="Delete Confirmation" popoverMessage="Do you really want to delete this purchase '{{row.name}}'?" placement="top" confirmText="Yes <i class='fa fa-check'></i>" cancelText="No <i class='fa fa-remove'></i>"
-                                        confirmButtonType="danger" cancelButtonType="default" (confirm)="onDelete(row.id)">
-                                        <i class="ml-auto fa fa-times fa-lg"></i>
-                                    </div>
-                                </mat-cell>
-                            </ng-container>
-
-                            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-                            <mat-row *matRowDef="let row; columns: displayedColumns;">
-                            </mat-row>
-                        </mat-table>
-
-                        <mat-paginator #pnCategory="matPaginator" [pageSizeOptions]="[5, 10, 25, 100]" [showFirstLastButtons]="true"></mat-paginator>
-                    </div>
-
-                </form>
-
-            </div>
-        </div>
+          <mat-paginator #pnPurchase="matPaginator" [pageSizeOptions]="[5, 10, 25, 100]" [showFirstLastButtons]="true"></mat-paginator>
+      </div>
     </div>
-
-    <!--Selected purchase-->
-    <div class="col-12 pt-2" *ngIf="selectedPurchase" [@routerTransition]>
-        <div class=" card">
-            <div class="card-header" id="detailheader">
-                <ng-template *ngIf="(selectedPurchase.product_id && selectedPurchase.product_id>0);then updating else adding"></ng-template>
-
-                <ng-template #updating>Update Selected Purchase Item</ng-template>
-                <ng-template #adding>Add New Pucharse</ng-template>
-
-            </div>
-            <div class="card-body">
-                <form (ngSubmit)="onSavePurchase()" #rootForm="ngForm" class="row">
-                    <div class="col-12 col-lg-8">
-
-                        <div class="form-group row">
-                            <mat-form-field class="col-3">
-                                <input matInput placeholder="Product Id" [(ngModel)]="selectedPurchase.product_id" name="productid" disabled #prodId="ngModel">
-                            </mat-form-field>
-
-                            <mat-form-field class="col-6">
-                                <input matInput placeholder="Product Name" [(ngModel)]="selectedPurchase.name" name="productname" disabled>
-                            </mat-form-field>
-
-                            <div class="col-2">
-                                <button mat-raised-button color="primary" type="button" (click)="selectProduct()">Select product</button>
-                            </div>
-
-                            <div class="col-12 text-danger" *ngIf="!selectedPurchase.product_id">
-                                <span>Product is required.</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <mat-form-field class="col-4">
-                                <input matInput type="number" placeholder="Quantity" [(ngModel)]="selectedPurchase.quantity" name="purchaseiquantity" #purchaseQuantity="ngModel" (change)="reCalculateUnitPrice()" required />
-                            </mat-form-field>
-
-                            <mat-form-field class="col-4">
-                                <input matInput type="number" placeholder="Total Price" [(ngModel)]="selectedPurchase.total_price" name="purchasetotalprice" #purchasetotalprice="ngModel" (change)="reCalculateUnitPrice()" required/>
-                            </mat-form-field>
-
-                            <mat-form-field class="col-4">
-                                <input matInput type="number" placeholder="Unit Price" [(ngModel)]="selectedPurchase.unit_price" name="purchaseunitprice" #purchaseunitprice="ngModel" disabled />
-                            </mat-form-field>
-
-                            <div class="col-4">
-                                <div class="text-danger" *ngIf="!purchaseQuantity.valid && purchaseQuantity.touched">
-                                    <span [hidden]="!purchaseQuantity.errors.required">Quantity is required.</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-danger" *ngIf="!purchasetotalprice.valid && purchasetotalprice.touched">
-                                    <span [hidden]="!purchasetotalprice.errors.required">Total Price is required.</span>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div class="form-group col-12 justify-content-between mt-4">
-                            <button mat-raised-button color="primary" class="mr-2" [disabled]="!(rootForm.form.valid && selectedPurchase.product_id>0)">Save</button>
-                            <button mat-raised-button type="button" color="accent" (click)="cancel()">Cacel</button>
-
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-4" *ngIf="selectedPurchase.icon">
-                        <img class="img-thumbnail" [src]="globals.getImageUrl(selectedPurchase.icon)" />
-                    </div>
-
-                </form>
-
-            </div>
-        </div>
-    </div>
-
-    <div [@routerTransition] *ngIf="productSelecting">
-        <product-select [products]="products" (onProductChanged)="productSelected($event)"></product-select>
-    </div>
-
-    <div class="col-12 pt-2" [hidden]="!showMsg">
-        <alert></alert>
-    </div>
-
+  </div>
 </div>

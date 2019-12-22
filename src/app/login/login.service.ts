@@ -1,7 +1,7 @@
 
 import {map} from 'rxjs/operators';
 import { Injectable } from '@angular/core';
-import { LoginResponse, Customer } from '../models';
+import { Customer } from '../models';
 import { BehaviorSubject ,  Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
@@ -12,37 +12,30 @@ import { environment } from '../../environments/environment';
 })
 
 export class LoginService {
+  private currentUserSubject: BehaviorSubject<Customer>;
+  public currentUser: Observable<Customer>;
 
-    constructor(private http: HttpClient) {
-    }
+  constructor(private http: HttpClient) {
+    this.currentUserSubject = new BehaviorSubject<Customer>(JSON.parse(localStorage.getItem('currentUser')));
+    this.currentUser = this.currentUserSubject.asObservable();
+  }
 
+  public get currentUserValue(): Customer {
+    return this.currentUserSubject.value;
+  }
 
-    login(username: string, password: string) {
-        return this.http.post(environment.appUrl + 'api/Auth',
-        { Email: username, Password: password }).pipe(map((response: LoginResponse) => {
-            if (response.isLoggedIn) {
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('currentUser', response.name);
-                this.setUser(response.user);
+  login(username: string, password: string) {
+      return this.http.post(environment.appUrl + 'api/users/authenticate',
+      { Email: username, Password: password }).pipe(map((user: Customer) => {
+        // store user details and jwt token in local storage to keep user logged in between page refreshes
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+        return user;
+      }));
+  }
 
-            }
-            return response.status;
-        }));
-    }
-
-    logout() {
-        // remove user from local storage to log user out
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('currentUser');
-        this.setUser(null);
-
-    }
-
-    setUser(user: Customer) {
-        if (user) {
-            localStorage.setItem('LoggedUser', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('LoggedUser');
-        }
-    }
+  logout() {
+    localStorage.removeItem('currentUser');
+    this.currentUserSubject.next(null);
+  }
 }

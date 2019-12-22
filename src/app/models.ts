@@ -14,37 +14,14 @@ export class Customer {
     token?: string;
 }
 
-export class IdentityResult {
-    FullName: string;
-    Succeeded: boolean;
-    Errors: string[];
-}
-
-
 export class Purchase {
     id: number;
     productId: number;
     userId: number;
     quantity: number;
     price: number;
-}
-
-export class Message {
-    id: number;
-    code: string;
-    text: string;
-    lang: string;
-}
-
-export class MyResponse {
-    success: boolean;
-    message: string;
-}
-
-export class LoginResponse {
-    email: string;
-    name: string;
-    isLoggedIn: boolean;
-    status: number;
+    product: Product;
     user: Customer;
+    dateCreated?: Date;
 }
+
